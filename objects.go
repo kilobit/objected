@@ -1,0 +1,141 @@
+/* Copyright 2021 Kilobit Labs Inc. */
+
+package objected
+
+import _ "fmt"
+import _ "errors"
+
+import "strings"
+
+type Value interface{}
+
+type Values []interface{}
+
+type ValueMapFunc func(i int, val Value) Value
+
+func (vals Values) Map(f ValueMapFunc) Values {
+
+	results := Values{}
+
+	for i, val := range vals {
+		result := f(i, val)
+
+		if result != nil {
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+// Gets values from a collection of Objects.
+//
+func (vals Values) GetValues(query string) Values {
+
+	results := vals.Map(ValueMapFunc(func(i int, val Value) Value {
+
+		var obj Object
+
+		switch v := val.(type) {
+
+		case map[string]interface{}:
+			obj = Object(v)
+
+		case Object:
+			obj = v
+
+		default:
+			return nil
+		}
+
+		res, ok := obj.Get(query)
+		if !ok {
+			return nil
+		}
+
+		return res
+	}))
+
+	return results
+}
+
+type Object map[string]interface{}
+
+// Recursively looks up key segments in Objects using '.' as a
+// separator.
+//
+func (obj Object) Get(query string) (Value, bool) {
+
+	if strings.HasSuffix(query, ".") {
+		return nil, false
+	}
+
+	key := query
+	rest := ""
+
+	i := strings.Index(query, ".")
+	if i != -1 {
+		key = query[:i]
+		rest = query[i+1:]
+	}
+
+	val, ok := obj[key]
+	if !ok {
+		return nil, false
+	}
+
+	if rest == "" {
+		return val, true
+	}
+
+	switch v := val.(type) {
+
+	case map[string]interface{}:
+		return Object(v).Get(rest)
+
+	case Object:
+		return v.Get(rest)
+
+	default:
+		return nil, false
+	}
+}
+
+// Gets a value and coerces it into a string.
+//
+// Returns "" if not found or not coercible.
+//
+func (obj Object) GetString(query string) string {
+
+	result := ""
+
+	val, ok := obj.Get(query)
+	if ok {
+		str, ok := val.(string)
+		if ok {
+			result = str
+		}
+	}
+
+	return result
+}
+
+func (obj Object) Keys() []string {
+	keys := []string{}
+
+	for key, _ := range obj {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+func (obj Object) Values() Values {
+
+	vals := Values{}
+	for _, val := range obj {
+		vals = append(vals, val)
+	}
+
+	return vals
+}
