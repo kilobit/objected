@@ -3,7 +3,7 @@
 package objected
 
 import _ "fmt"
-import _ "errors"
+import "errors"
 
 import "strings"
 
@@ -118,6 +118,34 @@ func (obj Object) GetString(query string) string {
 	}
 
 	return result
+}
+
+var ErrorNotFound = errors.New("Not found.")
+var ErrorNotANumber error = errors.New("Not a number.")
+
+// Gets a value and coerces it into a number.
+//
+func (obj Object) GetNumber(query string) (float64, error) {
+
+	result := float64(0)
+	var err error = nil
+
+	val, ok := obj.Get(query)
+	if ok {
+		switch v := val.(type) {
+		case int:
+			result = float64(v)
+		case float64:
+			result = v
+		default:
+			err = ErrorNotANumber
+		}
+	} else {
+
+		err = ErrorNotFound
+	}
+
+	return result, err
 }
 
 func (obj Object) Keys() []string {

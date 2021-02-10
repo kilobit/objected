@@ -139,3 +139,22 @@ func TestGetValues(t *testing.T) {
 		assert.ExpectDeep(t, test.exps, acts, test.vals, test.query, test.exps)
 	}
 }
+
+func TestGetNumber(t *testing.T) {
+
+	tests := []struct {
+		obj   o.Object
+		query string
+		exp   float64
+		err   error
+	}{
+		{o.Object{"foo": 42}, "foo", 42, nil},
+	}
+
+	for _, test := range tests {
+
+		result, err := test.obj.GetNumber(test.query)
+		assert.Expect(t, test.err, err, test.obj, test.query, test.exp, test.err)
+		assert.Expect(t, test.exp, result, test.obj, test.query, test.exp, test.err)
+	}
+}
